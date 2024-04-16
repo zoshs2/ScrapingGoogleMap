@@ -1,0 +1,10 @@
+-c Moscow -p 2350 --lat=55.7512 --lon=37.6201 -z 13.3
+-c London -p 2341 --lat=51.52 --lon=-0.145 -z 10.8
+-c Paris -p 2342 --lat=48.859 --lon=2.337 -z 12.7
+-c New_York -p 2343 --lat=40.713 --lon=-74.043 -z 10.6
+-c Chicago -p 2344 --lat=41.87 --lon=-87.64 -z 10.8
+-c Bogota -p 2345 --lat=4.65402 --lon=-74.0893 -z 11.9
+-c Toronto -p 2346 --lat=43.72606 --lon=-79.37394 -z 11
+-c Monterrey -p 2347 --lat=25.67568 --lon=-100.31028 -z 11.6
+-c Istanbul -p 2348 --lat=41.042283 --lon=28.981292 -z 11.2
+-c Bangkok -p 2349 --lat=13.765897 --lon=100.576105 -z 10.6
