@@ -96,7 +96,8 @@ API 키는 여러 군데에 노출시켜봤자 좋을게 없으므로, **.bash_p
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Map Page</title>
 
-    <script src="https://maps.googleapis.com/maps/api/js?v=3.36&key={{ api_key }}&callback=initMap" async defer></script> 
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.36&key={{ api_key }}&callback=
+    initMap" async defer></script> 
 
     <style>
         #map {
