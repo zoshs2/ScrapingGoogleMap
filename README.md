@@ -258,7 +258,7 @@ Slurm Command-line Tips in Terminal.
 
 위 스크래핑 프로그램으로 수집한 구글맵 교통정보 이미지를 어떤 식으로 전처리할 지에 대한 아이디어는, 23년 11월 Physical Review E 저널에 실린 [Ebrahimabadi, Sasan, et al. "Geometry of commutes in the universality of percolating traffic flows."](https://doi.org/10.1103/PhysRevE.108.054311){:target="_blank"} 논문을 참고했다. 
 
-대충 요약하자면, 3차원(RGB) 텐서 행렬의 이미지 데이터를 2차원으로 투영시키고 Max Pooling으로 주변 픽셀 정보들을 압축해서 표현하는 전처리 과정이다.
+요약하자면, 3차원(RGB) 텐서 행렬의 이미지 데이터를 2차원으로 투영시키고 Max Pooling으로 주변 픽셀 정보들을 압축해서 표현하는 전처리 과정이다.
 
 본 글에서는 그 전처리에 대한 일부 결과들만 소개한다. 
 
