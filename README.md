@@ -246,7 +246,8 @@ Crawlist 파일 내용은 이런 식으로 작성하여...
 -c Istanbul -p 2348 --lat=41.042283 --lon=28.981292 -z 11.2
 -c Bangkok -p 2349 --lat=13.765897 --lon=100.576105 -z 10.6
 ```
-> 이 도시들은 ['23년 초 교통체증 세계 주요 도시 순위' 기사](https://biz.heraldcorp.com/view.php?ud=20230201000652)를 보고 선정했다.
+> 이 도시들은 ['23년 초 교통체증 세계 주요 도시 순위' 기사](https://biz.heraldcorp.com/view.php?ud=20230201000652)를 보고 선정했었다.
+{: .prompt-info }
 
 위 10개 도시에 대한 JOB들을 한번에 개별 JOB으로 던져 작업할 수 있다.
 
@@ -258,7 +259,7 @@ Slurm Command-line Tips in Terminal.
 
 위 스크래핑 프로그램으로 수집한 구글맵 교통정보 이미지를 어떤 식으로 전처리할 지에 대한 아이디어는, 23년 11월 Physical Review E 저널에 실린 [Ebrahimabadi, Sasan, et al. "Geometry of commutes in the universality of percolating traffic flows."](https://doi.org/10.1103/PhysRevE.108.054311){:target="_blank"} 논문을 참고했다. 
 
-요약하자면, 3차원(RGB) 텐서 행렬의 이미지 데이터를 2차원으로 투영시키고 Max Pooling으로 주변 픽셀 정보들을 압축해서 표현하는 전처리 과정이다.
+요약하자면, 3차원(RGB) 텐서 행렬의 이미지 데이터를 2차원으로 투영시키고 MaxPooling으로 주변 픽셀 정보들을 압축해서 표현하는 전처리 과정이다.
 
 본 글에서는 그 전처리에 대한 일부 결과들만 소개한다. 
 
