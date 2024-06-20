@@ -1,0 +1,212 @@
+#!/usr/local/miniconda3/bin/python
+import os, sys, argparse, pathlib
+
+#`None` for skipping option, `True` for non-value option
+sbatch_options= {
+    "job_name"          : None,
+    "output"            : None,
+    "error"             : None,
+    "mail_type"         : None,                          # Mail events (NONE, BEGIN, END, FAIL, ALL) ex)"END,FAIL"
+    "mail_user"         : None,                          # Where to send mail	                     ex)email@uos.ac.kr
+    "partition"         : None,                          # target partition of slurm    ex) "hgx" or "gpu"
+    "ntasks"            : 1,                             # Number of MPI ranks
+    "nodes"             : 1,                             # Number of nodes
+    "ntasks_per_node"   : 1,                             # How many tasks on each node
+    "ntasks_per_node"   : None,                          # How many tasks on each node
+    "cpus_per_task"     : None,                          # Number of OpenMP threads for each MPI process/rank
+    "mems"              : None,                          # total memory
+    "mem_per_cpu"       : None,                          # Memory per core
+    "gres"              : None,                          # Graphic resource
+    "get_user_env"      : True,                          # get user default shell environment
+    "time"              : None,                          # Time limit hrs:min:sec
+}
+
+
+#argurment parsing
+def readablefile(string):
+    if os.path.isfile(string):
+        return string
+    else:
+        raise argparse.ArgumentError("FILE doesn't exist")
+
+#slurm option parsing
+def option(string):
+    if "=" in string:
+        key,  value = string.split("=")
+        key = key.strip()
+        value = value.strip()
+        if '-' in key:
+            key = key.replace("-","_")
+    else:
+        key,  value = string.strip(), True
+    if key in sbatch_options:
+        sbatch_options[key] = value
+    else:
+        raise argparse.ArgumentError(f"{key} is not valid option.")
+
+jobname = None
+
+parser = argparse.ArgumentParser(prog = "pybatch", description='Slurm batch job with given python file with `arglist`.')
+
+# main files
+parser.add_argument("pyfile", metavar="FILE", type=readablefile, 
+                    help='the python file you excute')
+parser.add_argument("--arg", "--argfile","-a", dest="arg", metavar="ARG_FILE", nargs="?", type=argparse.FileType("r"), default=None,
+                    help='the argument list of the given python file. each line will be excuted as a single batch job. (optional)')
+parser.add_argument("--conda-env", "-c", dest="condaenv", metavar="env_name", 
+                    help="the conda environment which you will want to use.")
+parser.add_argument("--sh", dest="shell", metavar="script", type=readablefile, default=None,
+                    help='the shell script which you want to excute before command `python <your file> <your arguments>`. (optional)')
+
+# slurm basic setting
+parser.add_argument("-n", "--name", dest="name", metavar="NAME", nargs="?", default=None,
+                    help='printed name on `squeue`. default is `python`. if argument list is more than 1, than there is a tailing number.(optional)')
+parser.add_argument("-o", "--output", dest="output", metavar="OUTFILE", nargs="?",
+                    help='Standard output and error log. The file name will be "OUTFILE.<jobname>.<pid>.out".')
+parser.add_argument("-e", "--error", dest="error", metavar="ERRFILE", nargs="?",
+                    help='The --error option is provided to allow stdout and stderr to be redirected to different locations. The file name will be "ERRFILE.<jobname>.<pid>.err".')
+
+# slurm option
+parser.add_argument("--opts", "--options", dest="opt", metavar="OPTION", nargs="*", type=option,
+                    help='the sbatch options (optional)')
+parser.add_argument("--optfile", "--optionfile", metavar="OPTIONFILE", nargs="?", default=None,
+                    help='the sbatch options as file. each line will be considered as a single option.  (optional)')
+parser.add_argument('--showopt', dest='showopt', action='store_true',
+                    help='Show sbatch submit option.')
+
+# options
+parser.add_argument('--show', dest='show', action='store_true',
+                    help='Show sbatch submition file. No submition and exit.')
+parser.add_argument('--test',"-t", dest='test', action='store_true',
+                    help='Test the file with srun command with first argument.')
+parser.add_argument('--no-date', dest='ndate', action='store_false',
+                    help="Process doesn't record date seperately.")
+
+args= parser.parse_args()
+
+
+if args.name is None:
+    args.name = args.pyfile
+#slurm options setting 
+if sbatch_options['output'] is  None and args.output is not None:
+    sbatch_options['output'] = args.output+f".{args.name}.%N.%j.out"
+if sbatch_options['error'] is  None and args.error is not None:
+    sbatch_options['error'] = args.error+f".{args.name}.%N.%j.out"
+
+if args.optfile:
+    for opt in args.optfile:
+        option(opt[:-1])
+
+            
+
+if args.showopt:
+    for opt in sbatch_options:
+        if sbatch_options[opt] is not None:
+            print(opt, "\t\t"," : ",sbatch_options[opt])
+
+
+
+# slurm 옵션 수정
+def SBATCH_opt(job_name, **kwarg):
+    """making slurm sbatch script."""
+
+    sbatch_options["job_name"] = job_name                      # Job name
+    #sbatch_options["output"]   = f"slurm/SLURM.{job_name}.%N.%j.out", # Standard output and error log
+    #sbatch_options["error"]    =  f"slurm/SLURM.{job_name}.%N.%j.err", # The --error option is provided to allow stdout and stderr to be redirected to different locations.
+
+    sbatch_options.update(kwarg)
+    
+    nonvalueoption = lambda opt:f"""#SBATCH --{opt.replace("_","-")}"""
+    valueoption = lambda opt, value:f"""#SBATCH --{opt.replace("_","-")}={value}"""
+
+    sbatch_source = ""
+
+    for key in sbatch_options:
+        if sbatch_options[key] is None:
+            continue
+        elif sbatch_options[key] is True:
+            sbatch_source += nonvalueoption(key)+"\n"
+        else:
+            sbatch_source += valueoption(key, sbatch_options[key])+"\n"
+            
+    return sbatch_source+"\n\n"
+
+fn_out = "batch.sh"
+
+if args.shell is not None:
+    shellscript = open(args.shell).readlines()
+    preheader = shellscript[0]
+    shellscript = shellscript[1:]
+    shellscript = "\n".join(shellscript)
+else:
+    preheader = "#!/bin/bash\n" 
+    shellscript = ["source ~/.bashrc"]
+    if args.condaenv is not None:
+        shellscript.append(f"conda activate {args.condaenv}")
+        shellscript.append(f"conda env list")
+        shellscript.append("")
+    shellscript.append("pwd; hostname;")
+    shellscript = "\n".join(shellscript)
+
+
+if args.show:
+    print(preheader)
+    print(SBATCH_opt(args.name))
+    print(shellscript)
+    command = f"python {args.pyfile} ARGUMENTS\n" # 실행 명령어 수정할것
+    if args.ndate:
+        command = "date\n" + command + "date\n"
+    print(command)
+    exit()
+
+if args.arg is not None:
+    for line in args.arg:
+        arg = line[:-1]
+        # 실행 명령어 수정할것
+        command = f"python {args.pyfile} {arg}\n" # 실행 명령어 수정할것
+        if args.ndate:
+            command = "date\n" + command + "date\n"
+
+        with open(fn_out, 'w') as f:
+            f.write(preheader)
+            f.write(SBATCH_opt(args.name))
+            f.write(shellscript)
+            f.write("\n\n")
+            f.write(command)
+        EXPORT = "sbatch batch.sh" 
+        if args.test:
+            print("tested file at 'batch.sh': ")
+            with open(fn_out, 'r') as f:
+                print(f.read())
+            print("\n\n")
+            print("Output : ")
+            os.system("srun bash batch.sh")  
+            exit()
+        
+        os.system(EXPORT)  
+        os.system('rm batch.sh')
+
+else:
+    command = f"python {args.pyfile}\n" # 실행 명령어 수정할것
+    if args.ndate:
+        command = "date\n" + command + "date\n"
+
+    with open(fn_out, 'w') as f:
+        f.write(preheader)
+        f.write(SBATCH_opt(args.name))
+        f.write(shellscript)
+        f.write("\n\n")
+        f.write(command)
+        f.write(enddate)
+    EXPORT = "sbatch batch.sh" 
+    if args.test:
+        print("tested file at 'batch.sh': ")
+        with open(fn_out, 'r') as f:
+            print(f.read())
+        print("\n\n")
+        print("Output : ")
+        os.system("srun bash batch.sh")  
+        exit()
+    
+    os.system(EXPORT)  
+    os.system('rm batch.sh')
